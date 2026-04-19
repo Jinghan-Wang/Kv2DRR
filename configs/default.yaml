@@ -1,57 +1,95 @@
-exp_name: exp_kv2drr
+
 seed: 1234
-device: cuda
-num_workers: 4
 
-paths:
-  train_kv_dir: /path/to/data/train/kv
-  train_drr_dir: /path/to/data/train/drr
-  val_kv_dir: /path/to/data/val/kv
-  val_drr_dir: /path/to/data/val/drr
-  save_root: ./outputs
 
-input:
-  in_channels: 1
-  out_channels: 1
-  norm_mode: percentile   # percentile / minmax
-  p_low: 1.0
-  p_high: 99.0
-  clip_min: null
-  clip_max: null
-
-model:
-  base_channels: 32
-  num_down: 3
-  num_res_blocks: 4
-  delta_scale: 0.20
-  use_tanh: true
-
-discriminator:
-  base_channels: 32
+dataset:
+  ##全部数据
+  #train_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/kv"
+  #train_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/drr"
+  #val_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/kv"
+  #val_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/drr"
+  ## 298数据
+  #train_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/input"
+  #train_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/target"
+  #val_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/input"
+  #val_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/target"
+  ## 1数据
+  train_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/kv"
+  train_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/drr"
+  val_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/kv"
+  val_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/drr"
+  fixed_h: 768
+  fixed_w: 1088
+  num_workers: 4
+  normalize_mode: "pair_independent"   # pair_independent | input_reference | fixed_range
+  fixed_range: [0.0, 4095.0]            # 仅当 normalize_mode=fixed_range 时使用
 
 train:
-  epochs: 200
-  batch_size: 4
-  lr_g: 0.0002
-  lr_d: 0.0002
-  beta1: 0.5
-  beta2: 0.999
-  use_amp: true
-  save_epoch_freq: 10
-  val_epoch_freq: 5
-  print_iter_freq: 20
+  batch_size: 1
+  epochs: 500
+  lr: 0.0002
+  weight_decay: 0.0
+  save_dir: "./checkpoints/residualOne"
+  log_interval: 20
+  val_interval: 1
+
+model:
+  in_channels: 1
+  base_channels: 16
+  delta_scale: 0.15
+
+
+#loss:
+#  lambda_l1: 1.0
+#  lambda_ssim: 0.5
+#  lambda_grad: 0.3
+#  lambda_delta: 0.10
+#  lambda_hist: 0.2
+#
+#  lambda_grad_input: 0.8
+#  lambda_keep: 1.0
+#  lambda_ssim_input: 0.2
+#  lambda_delta_tv: 0.1
+
+
+#loss:
+#  lambda_l1: 1.0
+#  lambda_ssim: 1.0
+#  lambda_grad: 0.4
+#  lambda_delta: 0.03
+#  lambda_hist: 0.6
+#
+#  lambda_grad_input: 0.40
+#  lambda_keep: 0.35
+#  lambda_ssim_input: 0.08
+#  lambda_delta_tv: 0.03
+
+### 一版定稿的参数
+#loss:
+#  lambda_l1: 2.0
+#  lambda_ssim: 1.0
+#  lambda_grad: 0.4
+#  lambda_delta: 0.03
+#  lambda_hist: 0.8
+#
+#  lambda_grad_input: 0.35
+#  lambda_keep: 0.20
+#  lambda_ssim_input: 0.08
+#  lambda_delta_tv: 0.02
 
 loss:
-  gan_mode: lsgan
-  lambda_adv: 1.0
-  lambda_id: 5.0
-  lambda_grad: 2.0
-  lambda_ssim_input: 2.0
-  lambda_delta_l1: 0.05
+  lambda_l1: 5.0
+  lambda_ssim: 2.0
+  lambda_grad: 0.4
+  lambda_delta: 0.03
+  lambda_hist: 0.8
+
+  lambda_grad_input: 0.35
+  lambda_keep: 0.20
+  lambda_ssim_input: 0.08
   lambda_delta_tv: 0.02
 
-val:
-  max_cases: 8
-  save_fused_pred: true
-  fused_sigma: 5.0
-  fused_alpha: 1.0
+infer:
+  checkpoint: "./checkpoints/residualALL2/best.pth"
+  input_dir: "./data/test/input"
+  output_dir: "./outputs_2d_nii"

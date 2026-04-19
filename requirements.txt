@@ -1,5 +1,0 @@
-numpy
-PyYAML
-SimpleITK
-tqdm
-opencv-python
