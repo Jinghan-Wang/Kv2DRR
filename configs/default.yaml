@@ -1,0 +1,57 @@
+exp_name: exp_kv2drr
+seed: 1234
+device: cuda
+num_workers: 4
+
+paths:
+  train_kv_dir: /path/to/data/train/kv
+  train_drr_dir: /path/to/data/train/drr
+  val_kv_dir: /path/to/data/val/kv
+  val_drr_dir: /path/to/data/val/drr
+  save_root: ./outputs
+
+input:
+  in_channels: 1
+  out_channels: 1
+  norm_mode: percentile   # percentile / minmax
+  p_low: 1.0
+  p_high: 99.0
+  clip_min: null
+  clip_max: null
+
+model:
+  base_channels: 32
+  num_down: 3
+  num_res_blocks: 4
+  delta_scale: 0.20
+  use_tanh: true
+
+discriminator:
+  base_channels: 32
+
+train:
+  epochs: 200
+  batch_size: 4
+  lr_g: 0.0002
+  lr_d: 0.0002
+  beta1: 0.5
+  beta2: 0.999
+  use_amp: true
+  save_epoch_freq: 10
+  val_epoch_freq: 5
+  print_iter_freq: 20
+
+loss:
+  gan_mode: lsgan
+  lambda_adv: 1.0
+  lambda_id: 5.0
+  lambda_grad: 2.0
+  lambda_ssim_input: 2.0
+  lambda_delta_l1: 0.05
+  lambda_delta_tv: 0.02
+
+val:
+  max_cases: 8
+  save_fused_pred: true
+  fused_sigma: 5.0
+  fused_alpha: 1.0
