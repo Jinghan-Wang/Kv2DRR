@@ -267,8 +267,8 @@ def main():
         )
 
         for it, batch in pbar:
-            inp = batch["kv"].to(device, non_blocking=True)
-            tgt = batch["drr"].to(device, non_blocking=True)
+            inp = batch["input"].to(device, non_blocking=True)
+            tgt = batch["target"].to(device, non_blocking=True)
 
             pred, delta = model(inp)
             loss, logs = criterion(pred, tgt, delta, inp)

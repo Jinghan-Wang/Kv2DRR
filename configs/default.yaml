@@ -14,10 +14,10 @@ dataset:
   #val_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/input"
   #val_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/target"
   ## 1数据
-  train_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/kv"
-  train_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/drr"
-  val_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/kv"
-  val_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/train/drr"
+  train_input_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/kv"
+  train_target_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/drr"
+  val_input_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/kv"
+  val_target_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/drr"
   fixed_h: 768
   fixed_w: 1088
   num_workers: 4
