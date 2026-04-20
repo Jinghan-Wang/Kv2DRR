@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from datasets.paired_image_dataset import PairedNiiDataset
 from models.residual_mapper import ResidualToneMapper
-from losses.tone_losses2 import ToneMappingLoss
+from losses.tone_losses import ToneMappingLoss
 from utils.misc import load_yaml
 from utils.metrics import calc_psnr, calc_ssim
 from utils.io import tensor_to_numpy01
@@ -20,6 +20,7 @@ def main():
         cfg["dataset"]["fixed_w"],
         cfg["dataset"]["normalize_mode"],
         tuple(cfg["dataset"]["fixed_range"]),
+        tuple(cfg["dataset"].get("aux_max_values", [1000.0, 2000.0])),
     )
     loader = DataLoader(ds, batch_size=1, shuffle=False)
 
@@ -38,9 +39,10 @@ def main():
     losses, psnrs, ssims = [], [], []
     for batch in loader:
         inp = batch["input"].to(device)
+        inp_base = batch["input_base"].to(device)
         tgt = batch["target"].to(device)
         pred, delta = model(inp)
-        loss, _ = criterion(pred, tgt, delta)
+        loss, _ = criterion(pred, tgt, delta, inp_base)
         losses.append(loss.item())
         psnrs.append(calc_psnr(tensor_to_numpy01(pred[0]), tensor_to_numpy01(tgt[0])))
         ssims.append(calc_ssim(tensor_to_numpy01(pred[0]), tensor_to_numpy01(tgt[0])))

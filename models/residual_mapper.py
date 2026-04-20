@@ -45,6 +45,7 @@ class ResidualToneMapper(nn.Module):
         self.out_conv = nn.Conv2d(base_channels, 1, kernel_size=1)
 
     def forward(self, x):
+        base = x[:, :1, :, :]
         e1 = self.enc1(x)
         e2 = self.enc2(self.pool1(e1))
         e3 = self.enc3(self.pool2(e2))
@@ -60,5 +61,5 @@ class ResidualToneMapper(nn.Module):
         d1 = self.dec1(torch.cat([d1, e1], dim=1))
 
         delta = torch.tanh(self.out_conv(d1)) * self.delta_scale
-        out = torch.clamp(x + delta, 0.0, 1.0)
+        out = torch.clamp(base + delta, 0.0, 1.0)
         return out, delta

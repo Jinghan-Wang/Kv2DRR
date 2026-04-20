@@ -12,7 +12,7 @@ from utils.io import ensure_dir, save_gray_image, save_numpy_as_nii_gz, tensor_t
 from utils.metrics import calc_psnr, calc_ssim
 from utils.misc import load_yaml, set_seed
 import setproctitle
-setproctitle.setproctitle("residualOne")
+setproctitle.setproctitle("WJH_Student")
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
@@ -38,17 +38,21 @@ def validate(model, loader, criterion, device, save_vis_dir=None, epoch=None, gl
     val_loss = 0.0
     psnr_list = []
     ssim_list = []
+    save_sample_idx = None
+    if save_vis_dir is not None and len(loader.dataset) > 0:
+        save_sample_idx = int(torch.randint(low=0, high=len(loader.dataset), size=(1,)).item())
 
     for i, batch in enumerate(loader):
         inp = batch["input"].to(device, non_blocking=True)
+        inp_base = batch["input_base"].to(device, non_blocking=True)
         tgt = batch["target"].to(device, non_blocking=True)
 
         pred, delta = model(inp)
-        loss, _ = criterion(pred, tgt, delta, inp)
+        loss, _ = criterion(pred, tgt, delta, inp_base)
         val_loss += loss.item()
 
         for b in range(inp.shape[0]):
-            input_np = tensor_to_numpy01(inp[b])
+            input_np = tensor_to_numpy01(inp_base[b])
             pred_np = tensor_to_numpy01(pred[b])
             target_np = tensor_to_numpy01(tgt[b])
 
@@ -66,7 +70,7 @@ def validate(model, loader, criterion, device, save_vis_dir=None, epoch=None, gl
             psnr_list.append(calc_psnr(pred_np, target_np))
             ssim_list.append(calc_ssim(pred_np, target_np))
             sample_idx = i * inp.shape[0] + b
-            if save_vis_dir is not None and sample_idx % 2000 == 0:
+            if save_sample_idx is not None and sample_idx == save_sample_idx:
                 tag = f"epoch{epoch:03d}_step{global_step:07d}_val_{b}"
 
                 pred_to_save = pred_np.astype("float32")
@@ -210,6 +214,7 @@ def main():
         cfg["dataset"]["fixed_w"],
         cfg["dataset"]["normalize_mode"],
         tuple(cfg["dataset"]["fixed_range"]),
+        tuple(cfg["dataset"].get("aux_max_values", [1000.0, 2000.0])),
     )
     val_ds = PairedNiiDataset(
         cfg["dataset"]["val_input_dir"],
@@ -218,6 +223,7 @@ def main():
         cfg["dataset"]["fixed_w"],
         cfg["dataset"]["normalize_mode"],
         tuple(cfg["dataset"]["fixed_range"]),
+        tuple(cfg["dataset"].get("aux_max_values", [1000.0, 2000.0])),
     )
 
     train_loader = DataLoader(
@@ -268,10 +274,11 @@ def main():
 
         for it, batch in pbar:
             inp = batch["input"].to(device, non_blocking=True)
+            inp_base = batch["input_base"].to(device, non_blocking=True)
             tgt = batch["target"].to(device, non_blocking=True)
 
             pred, delta = model(inp)
-            loss, logs = criterion(pred, tgt, delta, inp)
+            loss, logs = criterion(pred, tgt, delta, inp_base)
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
@@ -320,6 +327,7 @@ def main():
                 "cfg": cfg,
             }
 
+            torch.save(ckpt, os.path.join(save_dir, f"epoch{epoch + 1:03d}.pth"))
             torch.save(ckpt, os.path.join(save_dir, "latest.pth"))
 
             if val_ssim > best_ssim:

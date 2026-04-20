@@ -3,7 +3,7 @@ from glob import glob
 import numpy as np
 import torch
 from models.residual_mapper import ResidualToneMapper
-from datasets.paired_image_dataset import read_nii_as_numpy, _norm_independent, _norm_by_ref
+from datasets.paired_image_dataset import read_nii_as_numpy, _norm_independent, _norm_by_ref, build_three_channel_input
 from utils.io import ensure_dir, save_gray_image, save_numpy_as_nii_gz, tensor_to_numpy01
 from utils.misc import load_yaml
 
@@ -35,6 +35,7 @@ def main():
     fixed_h = cfg["dataset"]["fixed_h"]
     fixed_w = cfg["dataset"]["fixed_w"]
     delta_scale = cfg["model"]["delta_scale"]
+    aux_max_values = tuple(cfg["dataset"].get("aux_max_values", [1000.0, 2000.0]))
 
     for path in files:
         arr, ref_img = read_nii_as_numpy(path)
@@ -56,17 +57,21 @@ def main():
         else:
             raise ValueError(f"Unsupported normalize mode: {norm_mode}")
 
-        x = torch.from_numpy(arr01).float().unsqueeze(0).unsqueeze(0).to(device)  # [1,1,768,1088]
+        input_3ch, _, _ = build_three_channel_input(arr, arr01, aux_max_values=aux_max_values)
+        x = torch.from_numpy(input_3ch).float().unsqueeze(0).to(device)  # [1,3,H,W]
         pred, delta = model(x)
 
+        input_base = x[:, :1]
         pred01 = tensor_to_numpy01(pred[0])
         delta_vis = tensor_to_numpy01((delta[0] + delta_scale) / (2 * delta_scale + 1e-8))
+        input01 = tensor_to_numpy01(input_base[0])
         pred_raw = pred01 * (denorm_max - denorm_min) + denorm_min
 
         base = os.path.basename(path)
         stem = base[:-7] if base.endswith(".nii.gz") else os.path.splitext(base)[0]
 
         save_numpy_as_nii_gz(pred_raw, os.path.join(output_dir, f"{stem}_pred.nii.gz"), reference_img=ref_img)
+        save_gray_image(os.path.join(output_dir, f"{stem}_input.png"), input01)
         save_gray_image(os.path.join(output_dir, f"{stem}_pred.png"), pred01)
         save_gray_image(os.path.join(output_dir, f"{stem}_delta_vis.png"), delta_vis)
 

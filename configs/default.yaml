@@ -4,37 +4,38 @@ seed: 1234
 
 dataset:
   ##全部数据
-  #train_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/kv"
-  #train_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/drr"
-  #val_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/kv"
-  #val_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/drr"
+  train_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/kv"
+  train_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/trainALL/drr"
+  val_input_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/TestData/0-0489/kvNii"
+  val_target_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/TestData/0-0489/drrNii"
   ## 298数据
   #train_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/input"
   #train_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/target"
   #val_input_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/input"
   #val_target_dir: "/data/WJH/03_SpinalKVEnhance/residual_tone_mapping/data/train/target"
   ## 1数据
-  train_input_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/kv"
-  train_target_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/drr"
-  val_input_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/kv"
-  val_target_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/drr"
+  #train_input_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/kv"
+  #train_target_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/drr"
+  #val_input_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/kv"
+  #val_target_dir: "/data/WJH/03_SpinalKVEnhance/07_KV2DRR/train/drr"
   fixed_h: 768
   fixed_w: 1088
   num_workers: 4
   normalize_mode: "pair_independent"   # pair_independent | input_reference | fixed_range
+  aux_max_values: [1000.0, 2000.0]
   fixed_range: [0.0, 4095.0]            # 仅当 normalize_mode=fixed_range 时使用
 
 train:
   batch_size: 1
-  epochs: 500
+  epochs: 400
   lr: 0.0002
   weight_decay: 0.0
-  save_dir: "./checkpoints/residualOne"
+  save_dir: "./checkpoints/residual2399"
   log_interval: 20
   val_interval: 1
 
 model:
-  in_channels: 1
+  in_channels: 3
   base_channels: 16
   delta_scale: 0.15
 

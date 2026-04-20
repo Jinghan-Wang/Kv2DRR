@@ -14,22 +14,26 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 
 @torch.no_grad()
-def validate(model, loader, criterion, device, save_vis_dir=None):
+def validate(model, loader, criterion, device, save_vis_dir=None, epoch=None):
     model.eval()
     val_loss = 0.0
     psnr_list = []
     ssim_list = []
+    save_sample_idx = None
+    if save_vis_dir is not None and len(loader.dataset) > 0:
+        save_sample_idx = int(torch.randint(low=0, high=len(loader.dataset), size=(1,)).item())
 
     for i, batch in enumerate(loader):
         inp = batch["input"].to(device, non_blocking=True)
+        inp_base = batch["input_base"].to(device, non_blocking=True)
         tgt = batch["target"].to(device, non_blocking=True)
 
         pred, delta = model(inp)
-        loss, _ = criterion(pred, tgt, delta)
+        loss, _ = criterion(pred, tgt, delta, inp_base)
         val_loss += loss.item()
 
         for b in range(inp.shape[0]):
-            input_np = tensor_to_numpy01(inp[b])
+            input_np = tensor_to_numpy01(inp_base[b])
             pred_np = tensor_to_numpy01(pred[b])
             target_np = tensor_to_numpy01(tgt[b])
 
@@ -39,7 +43,8 @@ def validate(model, loader, criterion, device, save_vis_dir=None):
             psnr_list.append(calc_psnr(pred_np, target_np))
             ssim_list.append(calc_ssim(pred_np, target_np))
 
-            if save_vis_dir is not None and i == 0 and b < 4:
+            sample_idx = i * inp.shape[0] + b
+            if save_sample_idx is not None and sample_idx == save_sample_idx:
                 # ---------- 保存 PNG ----------
                 #save_gray_image(os.path.join(save_vis_dir, f"val_{b}_input.png"), input_np)
                 #save_gray_image(os.path.join(save_vis_dir, f"val_{b}_pred.png"), pred_np)
@@ -109,43 +114,43 @@ def validate(model, loader, criterion, device, save_vis_dir=None):
                         # save_numpy_as_nii_gz 支持直接传 spacing/origin/direction
                         save_numpy_as_nii_gz(
                             input_to_save,
-                            os.path.join(save_vis_dir, f"val_{b}_input.nii.gz"),
+                            os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_input.nii.gz"),
                             spacing=spacing,
                             origin=origin,
                             direction=direction,
                         )
                         save_numpy_as_nii_gz(
                             pred_to_save,
-                            os.path.join(save_vis_dir, f"val_{b}_pred.nii.gz"),
+                            os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_pred.nii.gz"),
                             spacing=spacing,
                             origin=origin,
                             direction=direction,
                         )
                         save_numpy_as_nii_gz(
                             target_to_save,
-                            os.path.join(save_vis_dir, f"val_{b}_target.nii.gz"),
+                            os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_target.nii.gz"),
                             spacing=spacing,
                             origin=origin,
                             direction=direction,
                         )
                         save_numpy_as_nii_gz(
                             delta_to_save,
-                            os.path.join(save_vis_dir, f"val_{b}_delta_vis.nii.gz"),
+                            os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_delta_vis.nii.gz"),
                             spacing=spacing,
                             origin=origin,
                             direction=direction,
                         )
                     except Exception as e:
                         print(f"[validate] warning: failed to save nii with meta for sample {b}: {e}")
-                        save_numpy_as_nii_gz(input_to_save, os.path.join(save_vis_dir, f"val_{b}_input.nii.gz"))
-                        save_numpy_as_nii_gz(pred_to_save, os.path.join(save_vis_dir, f"val_{b}_pred.nii.gz"))
-                        save_numpy_as_nii_gz(target_to_save, os.path.join(save_vis_dir, f"val_{b}_target.nii.gz"))
-                        save_numpy_as_nii_gz(delta_to_save, os.path.join(save_vis_dir, f"val_{b}_delta_vis.nii.gz"))
+                        save_numpy_as_nii_gz(input_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_input.nii.gz"))
+                        save_numpy_as_nii_gz(pred_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_pred.nii.gz"))
+                        save_numpy_as_nii_gz(target_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_target.nii.gz"))
+                        save_numpy_as_nii_gz(delta_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_delta_vis.nii.gz"))
                 else:
-                    save_numpy_as_nii_gz(input_to_save, os.path.join(save_vis_dir, f"val_{b}_input.nii.gz"))
-                    save_numpy_as_nii_gz(pred_to_save, os.path.join(save_vis_dir, f"val_{b}_pred.nii.gz"))
-                    save_numpy_as_nii_gz(target_to_save, os.path.join(save_vis_dir, f"val_{b}_target.nii.gz"))
-                    save_numpy_as_nii_gz(delta_to_save, os.path.join(save_vis_dir, f"val_{b}_delta_vis.nii.gz"))
+                    save_numpy_as_nii_gz(input_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_input.nii.gz"))
+                    save_numpy_as_nii_gz(pred_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_pred.nii.gz"))
+                    save_numpy_as_nii_gz(target_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_target.nii.gz"))
+                    save_numpy_as_nii_gz(delta_to_save, os.path.join(save_vis_dir, f"epoch{epoch:03d}_val_{b}_delta_vis.nii.gz"))
 
     val_loss /= max(len(loader), 1)
     psnr_mean = sum(psnr_list) / max(len(psnr_list), 1)
@@ -178,6 +183,7 @@ def main():
         cfg["dataset"]["fixed_w"],
         cfg["dataset"]["normalize_mode"],
         tuple(cfg["dataset"]["fixed_range"]),
+        tuple(cfg["dataset"].get("aux_max_values", [1000.0, 2000.0])),
     )
     val_ds = PairedNiiDataset(
         cfg["dataset"]["val_input_dir"],
@@ -186,6 +192,7 @@ def main():
         cfg["dataset"]["fixed_w"],
         cfg["dataset"]["normalize_mode"],
         tuple(cfg["dataset"]["fixed_range"]),
+        tuple(cfg["dataset"].get("aux_max_values", [1000.0, 2000.0])),
     )
 
     train_loader = DataLoader(
@@ -228,10 +235,11 @@ def main():
 
         for it, batch in pbar:
             inp = batch["input"].to(device, non_blocking=True)
+            inp_base = batch["input_base"].to(device, non_blocking=True)
             tgt = batch["target"].to(device, non_blocking=True)
 
             pred, delta = model(inp)
-            loss, logs = criterion(pred, tgt, delta)
+            loss, logs = criterion(pred, tgt, delta, inp_base)
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
@@ -250,7 +258,7 @@ def main():
         scheduler.step()
 
         if (epoch + 1) % cfg["train"]["val_interval"] == 0:
-            val_loss, val_psnr, val_ssim = validate(model, val_loader, criterion, device, vis_dir)
+            val_loss, val_psnr, val_ssim = validate(model, val_loader, criterion, device, vis_dir, epoch + 1)
             print(f"[Val] epoch={epoch+1} loss={val_loss:.4f} psnr={val_psnr:.4f} ssim={val_ssim:.4f}")
 
             ckpt = {
@@ -259,6 +267,7 @@ def main():
                 "optimizer": optimizer.state_dict(),
                 "cfg": cfg,
             }
+            torch.save(ckpt, os.path.join(save_dir, f"epoch{epoch + 1:03d}.pth"))
             torch.save(ckpt, os.path.join(save_dir, "latest.pth"))
 
             if val_ssim > best_ssim:
